@@ -7,8 +7,6 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
-from scraping import config
-
 """
 Script that uses selenium to navigate to various web pages holding team tables and download them.
 """
@@ -24,8 +22,8 @@ def get_nst_table(driver, year):
 
 def get_eh_table(driver, year):
     driver.get('https://evolving-hockey.com/login/')
-    driver.find_element_by_id('user_login').send_keys(config.eh_username)
-    driver.find_element_by_id('user_pass').send_keys(config.eh_password)
+    #driver.find_element_by_id('user_login').send_keys(config.eh_username)
+    #driver.find_element_by_id('user_pass').send_keys(config.eh_password)
     driver.find_element_by_id('user_pass').send_keys(Keys.ENTER)
     base_url = f'https://evolving-hockey.com/stats/team_standard/?_inputs_&std_tm_str=%225v5%22&std_tm_span=%22Regular%22&'\
                f'std_tm_type=%22Rates%22&std_tm_group=%22Season%22&std_tm_table=%22On-Ice%22&std_tm_team=%22All%22&std_tm_range'\
