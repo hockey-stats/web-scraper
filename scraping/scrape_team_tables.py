@@ -59,21 +59,23 @@ def main(year):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome(chrome_options=chrome_options)
-    #print('Getting NST table...')
-    #get_nst_table(driver, year)
-    ###
-    # evolving-hockey is being buggy and annoying, diable for now
-    ###
-    #print('Getting EH table...')
-    #get_eh_table(driver, year)
-    ###
-    print('Getting MP table...')
-    get_mp_table(driver, year)
-    time.sleep(2)
-    driver.quit()
-    print('Organizing tables....')
-    organize_tables()
+    retries = 3
+    while retries > 0:
+        try:
+            driver = webdriver.Chrome(chrome_options=chrome_options)
+            print('Getting MP table...')
+            time.sleep(2)
+            get_mp_table(driver, year)
+            time.sleep(2)
+        except:
+            print(f"Scraper failed, {retries} tries left....")
+            retries -= 1
+            driver.quit()
+        else:
+            print('Organizing tables....')
+            organize_tables()
+        finally:
+            driver.quit()
 
 
 if __name__ == '__main__':
