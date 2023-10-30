@@ -41,8 +41,7 @@ def get_mp_table(driver, year):
 
 
 def organize_tables():
-    map_pairs = [('games.csv', 'nst_team_table.csv'),
-                 ('teams.csv', 'mp_team_table.csv')]
+    map_pairs = [('teams.csv', 'mp_team_table.csv')]
 #    map_pairs = [('*EH*.csv', 'eh_team_table.csv'),
 #                 ('*Natural*.csv', 'nst_team_table.csv'),
 #                 ('teams.csv', 'mp_team_table.csv')]
@@ -61,8 +60,8 @@ def main(year):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
     driver = webdriver.Chrome(chrome_options=chrome_options)
-    print('Getting NST table...')
-    get_nst_table(driver, year)
+    #print('Getting NST table...')
+    #get_nst_table(driver, year)
     ###
     # evolving-hockey is being buggy and annoying, diable for now
     ###
