@@ -67,17 +67,17 @@ def main(year):
             time.sleep(2)
             get_mp_table(driver, year)
             time.sleep(2)
-        except:
+        except Exception as e:
+            print(e)
             print(f"Scraper failed, {retries} tries left....")
             retries -= 1
             driver.quit()
         else:
             print('Organizing tables....')
             organize_tables()
-        finally:
-            print("Shutting down scraper...")
-            driver.quit()
             break
+
+    driver.quit()
 
 
 if __name__ == '__main__':
