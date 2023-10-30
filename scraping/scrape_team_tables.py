@@ -75,7 +75,9 @@ def main(year):
             print('Organizing tables....')
             organize_tables()
         finally:
+            print("Shutting down scraper...")
             driver.quit()
+            break
 
 
 if __name__ == '__main__':
