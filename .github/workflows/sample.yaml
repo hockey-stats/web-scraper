@@ -1,0 +1,16 @@
+name: Azure Runner Test
+on:
+  workflow_dispatch:
+
+jobs:
+  test-azure-login:
+    runs-on: ['self-hosted', 'worker']
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate login
+        run: az account show
