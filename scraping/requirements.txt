@@ -1,2 +1,1 @@
-tqdm
-selenium
+selenium==4.27.0
