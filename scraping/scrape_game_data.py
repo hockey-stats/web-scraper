@@ -8,11 +8,16 @@ DB.
 
 import os
 import time
+import glob
+import shutil
 import argparse
+import itertools
 import pandas as pd
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+
+from util.team_maps import nst_team_mapping
 
 
 def get_game_tables(driver, year, games_in_db):
@@ -25,68 +30,109 @@ def get_game_tables(driver, year, games_in_db):
     """
     base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
                f'thruseason={year}{year+1}'
+    print(f"Accessing {base_url}")
     driver.get(base_url)
     time.sleep(2)
-    report_elements = driver.find_elements_by(By.LINK_TEXT, "Limited Report")
-    href_values = [element.get_dom_attributes('href') for element in report_elements]
-    reports_to_add = set()
+    report_elements = driver.find_elements(By.LINK_TEXT, "Limited Report")
+    href_values = [element.get_dom_attribute('href') for element in report_elements]
+    games_to_add = []
     for value in href_values:
-        nst_game_id = value.split('game=')[1].split('&view')[0]
+        nst_game_id = int(value.split('game=')[1].split('&view')[0])
         if nst_game_id not in games_in_db:
-            reports_to_add.append('https://www.naturalstattrick.com/' + value)
+            games_to_add.append(nst_game_id)
 
-    for report_url in reports_to_add:
+    print(f"Adding games with ID {games_to_add}")
+    for game_id in list(set(games_to_add)):
+        report_url = f'https://naturalstattrick.com/game.php?season={year}{year+1}&'\
+                     f'game={game_id}&view=limited'
+        print(f"Accessing {report_url}")
         driver.get(report_url)
         time.sleep(2)
         report_title = driver.find_element(By.XPATH, '//div[1]/div[5]/div/center/h1').text
         away_team, home_team = report_title.split(' @ ')
 
-        #TODO Map the team full names to the acronyms, i.e. Buffalo Sabres -> BUF
+        # Map the team full names to the acronyms, i.e. Buffalo Sabres -> BUF
+        away_team = nst_team_mapping[away_team]
+        home_team = nst_team_mapping[home_team]
+        # NOTE Some team acronyms are slightly different in NST than Moneypuck, e.g.
+        # NJ instead of NJD. Make sure all of these cases are handled when updating DB.
 
         # Navigate to each table in the game report and click the sections to have the download
         # buttons appear. Find the tables by using element IDs, where 
         #   "{team}stlb" -> Individual stats for team, and
         #   "{team}oilb" -> On-ice stats for team
-        # Thus, the following clicks on the banner to expand the table for the away team's
-        # individual table:
 
-        driver.find_element(By.ID, f"{away_team}stlb").click()
+        # We achieve each combination of team, state, and table by using itertools.product
+        teams = [away_team, home_team]
+        game_states = ['5v5', 'pp', 'pk']
+        tables = ['st', 'oi']
+        # Keep track of each table which has been expanded, so that they're not clicked twice
+        # and contracted
+        expanded_tables = []
+        state_labels= []
+        #for team, state, table in itertools.product(teams, game_states, tables):
+        for team, table, state in itertools.product(teams, tables, game_states):
+            print(table, state, team)
+            #if f'{team}_{table}' not in expanded_tables:
 
-        # Now that the table is expanded, can find and click on the download button
-        # First get the table, and then the button as a child of that table
-        table = driver.find_element(By.ID, 'tbBUFst5v5_wrapper')
-        button = table.find_element(By.CLASS_NAME, 'dt-button.buttons-csv.buttons-html5')
-        
-        # This downloads the file to ~/Downloads (i.e. /root/Downloads in the container)
-        # by default.
-        # TODO Update download directory (maybe).
-        button.click()
+            driver.get(report_url)
 
-        # TODO From here, need to repeat these steps for 5v4 and 4v5, and then do the same
-        # for the other tables (individual and on-ice stats for each team)
+            time.sleep(2)
+            print(f"Expanding table {team}_{table}")
+            expanded_tables.append(f'{team}_{table}')
+            # Find and click the label to expand the table
+            table_label = driver.find_element(By.ID, f"{team}{table}lb")
+            driver.execute_script('arguments[0].click()', table_label)
+            #table_label.click()
+            # Get the element representing the entire section of the table as a sibling
+            # element to the label
+            table_section = table_label.find_element(By.XPATH, '../div[1]')
+            state_labels = table_section.find_elements(By.XPATH, './label')
 
-        # To switch the table from 5v5 to 5v4 or 4v5, first find the element for the full 
-        # section by navigating to the grandparent of the table:
-        full_section = table.find_element(By.XPATH, '../..')
+            #print(f"Expanded tables: {expanded_tables}")
 
-        # The game-state buttons can then be found as children to this element
-        labels = full_section.find_elements(By.XPATH, './label')
+            for state_label in state_labels:
+                # Text of the state labels will look like:
+                #   ['All', 'EV', '5v5', '5v4 PP', '4v5 PK']
+                if state in state_label.text.lower():
+                    print("Found state label ", state)
+                    # Label click has to be handled in a specific way due to the element type
+                    driver.execute_script('arguments[0].click()', state_label)
+                    time.sleep(1)
+                    break
 
-        # 'labels' should corredpond to a list of 5 webdriver objects correspoding to
-        # ['All', 'EV', '5v5', '5v4 PP', '4v5 PK'].
-        # With these we can just do something like:
-        for label in labels:
-            if label.text in {'5v4 PP', '4v5 PK'}:
-                # Have to click the label like this, instead of 'click()'
-                driver.execute_script('arguments[0].click()', label)
+            # Now that the correct table for the state is active, click the download button
+            table_id = f'tb{team}{table}{state}_wrapper'
+            print(f"Table ID: {table_id}")
+            table_element = driver.find_element(By.ID, table_id)
+            dl_button = table_element.find_element(By.CLASS_NAME,
+                                                   'dt-button.buttons-csv.buttons-html5')
+            print("Downloading..")
+            driver.execute_script('arguments[0].click()', dl_button)
+            #dl_button.click()
+            time.sleep(4)
 
-                # Now download the CSV as before
-                table_name = f'tb{team}stpp' if label.text == '5v4 PP' else f'tb{team}stpk'
-                table = driver.find_element(By.ID, f'{table_name}_wrapper')
-                button = table.find_element(By.CLASS_NAME, 'dt-button.buttons-csv.buttons-html5')
-                button.click()
+            # Rename and move the downloaded table
+            source = glob.glob('/root/Downloads/*csv')[0]
+            dest = f'tables/{game_id}_{team}_{state}_{table}.csv'
+            shutil.move(source, dest)
+            print(f'Moving file {source} -> {dest}')
 
-        # TODO: Add logic for other 3 table sections
+            # If we're gathering inidivudal stats, also grab goalie table
+            if table == 'st':
+                table_parent = table_element.find_element(By.XPATH, '..')
+                goalie_table = table_parent.find_element(By.ID, f'tb{team}stgall_wrapper')
+                dl_button = goalie_table.find_element(By.CLASS_NAME,
+                                                      'dt-button.buttons-csv.buttons-html5')
+                print("Downloading goalie chart...")
+                dl_button.click()
+                time.sleep(4)
+
+                # Rename and move table
+                source = glob.glob('/root/Downloads/*csv')[0]
+                dest = f'tables/{game_id}_{team}_{state}_goalies.csv'
+                shutil.move(source, dest)
+                print(f'Moving file {source} -> {dest}')
 
 
 def main(year):
@@ -95,13 +141,33 @@ def main(year):
     :param int year: Year corresponding to the season for which data should be scraped, e.g.
                  '2024' would mean the 2024/2025 season.
     """
+
+    # Create a directory to store the tables, if it doesn't already exist
+    if not os.path.isdir('tables/'):
+        os.mkdir('tables/')
+
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
-    retries = 3
+    retries = 1
     while retries > 0:
         try:
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game tables, attempt {4 - retries}...")
             time.sleep(2)
-            games_in_db = set(range(20001, 21312))
+            games_in_db = set(range(20001, 20344))
+
+            get_game_tables(driver, year, games_in_db)
+        except Exception as e:
+            print(e)
+            retries -= 1
+            driver.quit()
+        else:
+            driver.quit()
+            break
+
+    print("Scrape complete")
+
+
+if __name__ == '__main__':
+    main(2024)
