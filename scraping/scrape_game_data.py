@@ -41,8 +41,10 @@ def get_game_tables(driver, year, games_in_db):
         if nst_game_id not in games_in_db:
             games_to_add.append(nst_game_id)
 
+    games_to_add = list(set(games_to_add))
+
     print(f"Adding games with ID {games_to_add}")
-    for game_id in list(set(games_to_add)):
+    for game_id in games_to_add:
         report_url = f'https://naturalstattrick.com/game.php?season={year}{year+1}&'\
                      f'game={game_id}&view=limited'
         print(f"Accessing {report_url}")
@@ -58,7 +60,7 @@ def get_game_tables(driver, year, games_in_db):
         # NJ instead of NJD. Make sure all of these cases are handled when updating DB.
 
         # Navigate to each table in the game report and click the sections to have the download
-        # buttons appear. Find the tables by using element IDs, where 
+        # buttons appear. Find the tables by using element IDs, where
         #   "{team}stlb" -> Individual stats for team, and
         #   "{team}oilb" -> On-ice stats for team
 
@@ -66,50 +68,38 @@ def get_game_tables(driver, year, games_in_db):
         teams = [away_team, home_team]
         game_states = ['5v5', 'pp', 'pk']
         tables = ['st', 'oi']
-        # Keep track of each table which has been expanded, so that they're not clicked twice
-        # and contracted
-        expanded_tables = []
-        state_labels= []
-        #for team, state, table in itertools.product(teams, game_states, tables):
         for team, table, state in itertools.product(teams, tables, game_states):
-            print(table, state, team)
-            #if f'{team}_{table}' not in expanded_tables:
 
+            # Refresh the page after each iteration to avoid issues
             driver.get(report_url)
-
             time.sleep(2)
-            print(f"Expanding table {team}_{table}")
-            expanded_tables.append(f'{team}_{table}')
+
             # Find and click the label to expand the table
             table_label = driver.find_element(By.ID, f"{team}{table}lb")
             driver.execute_script('arguments[0].click()', table_label)
-            #table_label.click()
+
             # Get the element representing the entire section of the table as a sibling
             # element to the label
             table_section = table_label.find_element(By.XPATH, '../div[1]')
             state_labels = table_section.find_elements(By.XPATH, './label')
 
-            #print(f"Expanded tables: {expanded_tables}")
-
             for state_label in state_labels:
                 # Text of the state labels will look like:
                 #   ['All', 'EV', '5v5', '5v4 PP', '4v5 PK']
                 if state in state_label.text.lower():
-                    print("Found state label ", state)
-                    # Label click has to be handled in a specific way due to the element type
+                    # Click the one corresponding to this iteration
                     driver.execute_script('arguments[0].click()', state_label)
                     time.sleep(1)
                     break
 
             # Now that the correct table for the state is active, click the download button
             table_id = f'tb{team}{table}{state}_wrapper'
-            print(f"Table ID: {table_id}")
+            print(table_id)
             table_element = driver.find_element(By.ID, table_id)
             dl_button = table_element.find_element(By.CLASS_NAME,
                                                    'dt-button.buttons-csv.buttons-html5')
             print("Downloading..")
             driver.execute_script('arguments[0].click()', dl_button)
-            #dl_button.click()
             time.sleep(4)
 
             # Rename and move the downloaded table
@@ -155,7 +145,7 @@ def main(year):
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game tables, attempt {4 - retries}...")
             time.sleep(2)
-            games_in_db = set(range(20001, 20344))
+            games_in_db = set(range(20001, 20346))
 
             get_game_tables(driver, year, games_in_db)
         except Exception as e:

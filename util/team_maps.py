@@ -30,5 +30,6 @@ nst_team_mapping = {
     "Anaheim Ducks": "ANA",
     "Chicago Blackhawks": "CHI",
     "Arizona Coyotes": "ARI",
+    "Utah Hockey Club": "UTA",
     "New York Islanders": "NYI"
 }
