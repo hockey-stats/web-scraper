@@ -66,7 +66,7 @@ def get_game_tables(driver, year, games_in_db):
 
         # We achieve each combination of team, state, and table by using itertools.product
         teams = [away_team, home_team]
-        game_states = ['5v5', 'pp', 'pk']
+        game_states = ['ev', 'pp', 'pk']
         tables = ['st', 'oi']
         for team, table, state in itertools.product(teams, tables, game_states):
 
