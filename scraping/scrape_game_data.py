@@ -145,7 +145,7 @@ def main(year):
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game tables, attempt {4 - retries}...")
             time.sleep(2)
-            games_in_db = set(range(20001, 20346))
+            games_in_db = set(range(20001, 20844))
 
             get_game_tables(driver, year, games_in_db)
         except Exception as e:
