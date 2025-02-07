@@ -12,49 +12,29 @@ import glob
 import shutil
 import argparse
 import itertools
-import pandas as pd
-from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 from util.team_maps import nst_team_mapping
 
 
-def get_game_tables(driver, year, finished_games):
+def get_game_tables(driver, year, game_id):
     """
-    Given a year, navigates to the 'Games' page of NST for that season, and download game
-    data for the first game not already reported on.
+    Given a game_id, navigates to the page for that game and scrape the requisite tables.
     :param ChromeDriver driver: ChromeDriver object that will do the scraping.
-    :param int year: Year corresponding to the season.
-    :param set(int) finished_games: Set of gameIDs already reported, which need not be scraped.
+    :param int year: Year for which to check
+    :param int game_id: Game ID for which to scrape data.
     """
-    base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
-               f'thruseason={year}{year+1}'
-    print(f"Accessing {base_url}")
-    driver.get(base_url)
-    time.sleep(2)
-    report_elements = driver.find_elements(By.LINK_TEXT, "Limited Report")
-    href_values = [element.get_dom_attribute('href') for element in report_elements]
-
-    game_id = None
-    found = False
-    for value in href_values:
-        nst_game_id = int(value.split('game=')[1].split('&view')[0])
-        if nst_game_id not in finished_games:
-            game_id = nst_game_id
-            found = True
-
-    if not found:
-        print("No new games found, exiting....")
-        return
 
     print(f"Scraping game with ID {game_id}")
-    
+
     report_url = f'https://naturalstattrick.com/game.php?season={year}{year+1}&'\
                  f'game={game_id}&view=limited'
     print(f"Accessing {report_url}")
     driver.get(report_url)
+
     time.sleep(2)
+
     report_title = driver.find_element(By.XPATH, '//div[1]/div[5]/div/center/h1').text
     away_team, home_team = report_title.split(' @ ')
 
@@ -82,6 +62,7 @@ def get_game_tables(driver, year, finished_games):
 
         # Refresh the page after each iteration to avoid issues
         driver.get(report_url)
+
         time.sleep(2)
 
         # Find and click the label to expand the table
@@ -99,7 +80,9 @@ def get_game_tables(driver, year, finished_games):
             if state in state_label.text.lower():
             # Click the one corresponding to this iteration
                 driver.execute_script('arguments[0].click()', state_label)
+
                 time.sleep(1)
+
                 break
 
         # Now that the correct table for the state is active, click the download button
@@ -110,11 +93,12 @@ def get_game_tables(driver, year, finished_games):
                                                'dt-button.buttons-csv.buttons-html5')
         print("Downloading..")
         driver.execute_script('arguments[0].click()', dl_button)
+
         time.sleep(4)
 
         # Rename and move the downloaded table
         source = glob.glob('/root/Downloads/*csv')[0]
-        dest = f'tables/{game_id}_{team}_{state}_{table}.csv'
+        dest = f'tables/{yy}-{mm}-{dd}_{game_id}_{team}_{state}_{table}.csv'
         shutil.move(source, dest)
         print(f'Moving file {source} -> {dest}')
 
@@ -126,6 +110,7 @@ def get_game_tables(driver, year, finished_games):
                                                   'dt-button.buttons-csv.buttons-html5')
             print("Downloading goalie chart...")
             dl_button.click()
+
             time.sleep(4)
 
             # Rename and move table
@@ -135,22 +120,14 @@ def get_game_tables(driver, year, finished_games):
             print(f'Moving file {source} -> {dest}')
 
 
-def main(year):
+def main(year, game_id):
     """
     Main function which initializes and runs the scraper.
-    :param int year: Year corresponding to the season for which data should be scraped, e.g.
-                 '2024' would mean the 2024/2025 season.
     """
 
     # Create a directory to store the tables, if it doesn't already exist
     if not os.path.isdir('tables/'):
         os.mkdir('tables/')
-
-    if not os.path.isfile(f"finished_game_ids_{year}.txt"):
-        raise FileNotFoundError(f"No 'finished_game_ids_{year}.txt' file, aborting...")
-
-    with open(f"finished_game_ids_{year}.txt", 'r', encoding='utf-8') as f:
-        finished_games = set([x.strip() for x in f.readlines()])
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
@@ -162,11 +139,12 @@ def main(year):
             print(f"Getting game tables, attempt {4 - retries}...")
             time.sleep(2)
 
-            get_game_tables(driver, year, finished_games)
+            get_game_tables(driver, year, game_id)
         except Exception as e:
-            raise e
             retries -= 1
             driver.quit()
+            if retries == 0:
+                raise e
         else:
             driver.quit()
             break
@@ -179,6 +157,8 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--year', default=2024, type=int,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
+    parser.add_argument('-g', '--game_id',
+                        help='Game ID in naturalstattrick for which to scrape game data.')
     args = parser.parse_args()
 
-    main(args.year)
+    main(year=args.year, game_id=args.game_id)
