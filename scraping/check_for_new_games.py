@@ -96,8 +96,12 @@ def main(year):
 
     # Set new game ID as GitHub ouput
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
-        print(f"game_id={game_id}\n", file=fh)
+        print(f"game_id={game_id}", file=fh)
+
+    with open(os.environ['GITHUB_OUTPUT'], 'r', encoding='utf-8') as fh:
+        print(fh.readlines())
     return
+
 
 
 if __name__ == '__main__':
