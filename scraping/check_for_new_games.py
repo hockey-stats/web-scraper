@@ -40,6 +40,7 @@ def check_for_new_games(driver, year, finished_games):
         if nst_game_id not in finished_games:
             game_id = nst_game_id
             found = True
+            break
 
     if not found:
         print("No new games found, exiting....")
@@ -64,7 +65,7 @@ def main(year):
         raise FileNotFoundError(f"No 'finished_game_ids_{year}.txt' file, aborting...")
 
     with open(f"finished_game_ids_{year}.txt", 'r', encoding='utf-8') as f:
-        finished_games = {x.strip() for x in f.readlines()}
+        finished_games = {int(x.strip()) for x in f.readlines()}
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
@@ -93,7 +94,7 @@ def main(year):
 
     print(f"New game found! ID is {game_id}")
 
-    # Set new game ID is GitHub ouput
+    # Set new game ID as GitHub ouput
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
         print(f"game_id={game_id}\n", file=fh)
     return
