@@ -88,8 +88,8 @@ def main(year):
 
     print("Scrape complete")
     if not game_id:
-        print("No new game found, exiting...")
-        return
+        print("No new game found...")
+        game_id = "NONE"
 
     print(f"New game found! ID is {game_id}")
 
