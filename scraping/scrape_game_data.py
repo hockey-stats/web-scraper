@@ -96,6 +96,10 @@ def get_game_tables(driver, year, game_id):
 
         time.sleep(4)
 
+        # Find the files
+        search = glob.glob('/*csv') + glob.glob('/*/*csv') + glob.glob('*csv')
+        print(search)
+
         # Rename and move the downloaded table
         source = glob.glob('/root/Downloads/*csv')[0]
         dest = f'tables/{yy}-{mm}-{dd}_{game_id}_{team}_{state}_{table}.csv'
