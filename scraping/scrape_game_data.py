@@ -94,7 +94,7 @@ def get_game_tables(driver, year, game_id):
         print("Downloading..")
         driver.execute_script('arguments[0].click()', dl_button)
 
-        time.sleep(4)
+        time.sleep(6)
 
         # Find the files
         search = glob.glob('/*csv') + glob.glob('/*/*csv') + glob.glob('*csv')
