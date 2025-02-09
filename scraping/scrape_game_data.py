@@ -96,7 +96,7 @@ def get_game_tables(driver, year, game_id):
 
         time.sleep(6)
 
-        download_filepath = './tables/*csv'
+        download_filepath = '/github/home/Downloads/*csv'
 
         # Find the files
         search = glob.glob(download_filepath)
