@@ -94,10 +94,16 @@ def get_game_tables(driver, year, game_id):
         print("Downloading..")
         driver.execute_script('arguments[0].click()', dl_button)
 
-        time.sleep(4)
+        time.sleep(6)
+
+        download_filepath = '/github/home/Downloads/*csv'
+
+        # Find the files
+        search = glob.glob(download_filepath)
+        print(f"search results: {search}")
 
         # Rename and move the downloaded table
-        source = glob.glob('/root/Downloads/*csv')[0]
+        source = glob.glob(download_filepath)[0]
         dest = f'tables/{yy}-{mm}-{dd}_{game_id}_{team}_{state}_{table}.csv'
         shutil.move(source, dest)
         print(f'Moving file {source} -> {dest}')
@@ -114,7 +120,7 @@ def get_game_tables(driver, year, game_id):
             time.sleep(4)
 
             # Rename and move table
-            source = glob.glob('/root/Downloads/*csv')[0]
+            source = glob.glob(download_filepath)[0]
             dest = f'tables/{yy}-{mm}-{dd}_{game_id}_{team}_{state}_goalies.csv'
             shutil.move(source, dest)
             print(f'Moving file {source} -> {dest}')
@@ -132,6 +138,8 @@ def main(year, game_id):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
+    chrome_prefs = {"download.default_directory": "./tables"}
+    chrome_options.experimental_options["prefs"] = chrome_prefs
     retries = 3
     while retries > 0:
         try:

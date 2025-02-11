@@ -2,8 +2,9 @@
 Meant to be called as part of a workflow for scraping game tables. Should be called in the
 step immediately preceding the actual scraper.
 
-Script that will read the list of finished game IDs and check if there are any new games
-to scrape. 
+Script that will take the game ID of the last game reported on from the GitHub Org variable,
+and check the available finished games on NST to see if there are any more recent games
+available.
 
 If so, pass the first found new game ID to the scraping script.
 
@@ -16,10 +17,10 @@ import argparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-def check_for_new_games(driver, year, finished_games):
+def check_for_new_games(driver, year, last_game_id):
     """
     Given a year, navigates to the 'Games' page of naturalstattrick.com for that season,
-    and checks the list of game IDs against the list of IDs in `finished_games`. If it
+    and checks the list of game IDs against the `last_game_id`. If it
     finds one that hasn't been scraped, return that game ID. If no new game was found,
     return nothing.
     """
@@ -37,9 +38,10 @@ def check_for_new_games(driver, year, finished_games):
     found = False
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
-        if nst_game_id not in finished_games:
+        if nst_game_id > last_game_id:
             game_id = nst_game_id
             found = True
+            break
 
     if not found:
         print("No new games found, exiting....")
@@ -49,22 +51,13 @@ def check_for_new_games(driver, year, finished_games):
     return game_id
 
 
-def main(year):
+def main(year, last_game_id):
     """
-    Check that a file exists containing finished game IDs for the given year. 
-    
-    If not, raise an error.
-
-    If so, checks that a new game ID exists for that year and sets it as an output for subsequent
+    Checks that a new game ID exists for that year and sets it as an output for subsequent
     step in workflow.
 
     If no new game ID exists, exit gracefully.
     """
-    if not os.path.isfile(f"finished_game_ids_{year}.txt"):
-        raise FileNotFoundError(f"No 'finished_game_ids_{year}.txt' file, aborting...")
-
-    with open(f"finished_game_ids_{year}.txt", 'r', encoding='utf-8') as f:
-        finished_games = {x.strip() for x in f.readlines()}
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
@@ -75,7 +68,7 @@ def main(year):
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game IDs, attempt {4 - retries}...")
             time.sleep(2)
-            game_id = check_for_new_games(driver, year, finished_games)
+            game_id = check_for_new_games(driver, year, last_game_id)
 
         except Exception as e:
             retries -= 1
@@ -88,15 +81,15 @@ def main(year):
 
     print("Scrape complete")
     if not game_id:
-        print("No new game found, exiting...")
-        return
+        print("No new game found...")
+        game_id = "NONE"
 
     print(f"New game found! ID is {game_id}")
 
-    # Set new game ID is GitHub ouput
+    # Set new game ID as GitHub ouput
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
-        print(f"game_id={game_id}\n", file=fh)
-    return
+        print(f"game_id={game_id}", file=fh)
+
 
 
 if __name__ == '__main__':
@@ -104,6 +97,8 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--year', default=2024, type=int,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
+    parser.add_argument('-g', '--last_game_id', required=True, type=int,
+                        help='The NST Game ID of the last game reported on.')
     args = parser.parse_args()
 
-    main(args.year)
+    main(args.year, args.last_game_id)
