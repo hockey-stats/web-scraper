@@ -11,7 +11,7 @@ nst_team_mapping = {
     "Colorado Avalanche": "COL",
     "Washington Capitals": "WSH",
     "Detroit Red Wings": "DET",
-    "Tampa Bay Lightning": "TBL",
+    "Tampa Bay Lightning": "TB",
     "Vancouver Canucks": "VAN",
     "Dallas Stars": "DAL",
     "New York Rangers": "NYR",
