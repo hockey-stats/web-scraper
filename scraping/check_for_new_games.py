@@ -24,8 +24,14 @@ def check_for_new_games(driver, year, last_game_id):
     finds one that hasn't been scraped, return that game ID. If no new game was found,
     return nothing.
     """
+    # Regular season
+    #base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
+    #           f'thruseason={year}{year+1}'
+
+    # Playoffs
     base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
-               f'thruseason={year}{year+1}'
+               f'thruseason={year}{year+1}&stype=3&sit=5v5&loc=B&team=All&rate=n'
+
     print(f"Accessing {base_url}")
     driver.get(base_url)
 
