@@ -48,6 +48,12 @@ def check_for_new_games(driver, year, last_game_id):
 
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
+
+        # For the playoffs, series reports links end in 0 while game report links end in 1
+        # We only want the game reports so skip if value % 0 == 0
+        if nst_game_id % 10 == 0:
+            continue
+
         if nst_game_id not in set(reported_ids):
             game_id = nst_game_id
             found = True
