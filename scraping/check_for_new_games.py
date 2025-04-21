@@ -44,7 +44,7 @@ def check_for_new_games(driver, year, last_game_id):
     found = False
 
     # Logic adjustment made for the playoffs, refer to NOTE in main.
-    reported_ids = last_game_id.split(',')
+    reported_ids = [int(x) for x in last_game_id.split(',')]
 
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--year', default=2024, type=int,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
-    parser.add_argument('-g', '--last_game_id', required=True, type=int,
+    parser.add_argument('-g', '--last_game_id', required=True, type=str,
                         help='The NST Game ID of the last game reported on.')
     args = parser.parse_args()
 
