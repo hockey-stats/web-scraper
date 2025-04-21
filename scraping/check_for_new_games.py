@@ -42,9 +42,13 @@ def check_for_new_games(driver, year, last_game_id):
 
     game_id = None
     found = False
+
+    # Logic adjustment made for the playoffs, refer to NOTE in main.
+    reported_ids = last_game_id.split(',')
+
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
-        if nst_game_id > last_game_id:
+        if nst_game_id not in set(reported_ids):
             game_id = nst_game_id
             found = True
             break
@@ -63,6 +67,13 @@ def main(year, last_game_id):
     step in workflow.
 
     If no new game ID exists, exit gracefully.
+
+    ************************************************************************
+    NOTE: For the NHL playoffs, NST adds games with game IDs whose values are non-monotonous,
+    so to make sure every game is reported on, the 'LAST_GAME_ID' variable will instead be a 
+    comma-seperated list of every game ID reported on so far, so that this script will look
+    for the first game ID to not be included in this list, create the report, and then update
+    the comma-seperated string stored as an Actions variable.
     """
 
     chrome_options = webdriver.ChromeOptions()
