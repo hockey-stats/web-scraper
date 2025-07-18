@@ -101,6 +101,7 @@ def main(year: int, division: int):
     while retries > 0:
         try:
             driver = webdriver.Chrome(options=chrome_options)
+            driver.command_executor.set_timeout(250)
             print(f"Getting game tables, attempt {4 - retries}...")
             time.sleep(2)
 
