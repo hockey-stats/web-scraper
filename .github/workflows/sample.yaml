@@ -10,9 +10,6 @@ jobs:
       image: sohraub/hockey-stats-web-scraper:main
 
     steps:
-      - name: Install pybaseball
-        run: pip3 install pybaseball
-
       - name: Test library
         shell: python
         run: |
