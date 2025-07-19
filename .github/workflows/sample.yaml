@@ -6,8 +6,6 @@ on:
 jobs:
   rest:
     runs-on: ubuntu-latest
-    container:
-      image: sohraub/hockey-stats-web-scraper:main
 
     steps:
       - uses: actions/checkout@v4
