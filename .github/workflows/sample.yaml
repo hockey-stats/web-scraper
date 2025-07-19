@@ -1,16 +1,22 @@
-name: Azure Runner Test
+name: Test pybaseball in docker
 on:
+  push:
   workflow_dispatch:
 
 jobs:
-  test-azure-login:
-    runs-on: ['self-hosted', 'worker']
+  rest:
+    runs-on: ubuntu-latest
+    container:
+      image: sohraub/hockey-stats-web-scraper:main
 
     steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Install pybaseball
+        run: pip3 install pybaseball
 
-      - name: Validate login
-        run: az account show
+      - name: Test library
+        shell: python
+        run: |
+          import pybaseball as pyb
+          df = pyb.schedule_and_record(2025, "TOR")
+          print(df)
+
