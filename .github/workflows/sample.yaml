@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: ahhh
+        run: ls -lrt
+
       - name: Test library
         run: python3 test.py
 
