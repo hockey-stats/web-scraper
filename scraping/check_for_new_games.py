@@ -14,6 +14,8 @@ If not, exit gracefully and end the workflow.
 import os
 import time
 import argparse
+
+import duckdb
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -29,8 +31,12 @@ def check_for_new_games(driver, year, last_game_id):
     #           f'thruseason={year}{year+1}'
 
     # Playoffs
+    #base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
+    #           f'thruseason={year}{year+1}&stype=3&sit=5v5&loc=B&team=All&rate=n'
+
+    # Pre-season
     base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
-               f'thruseason={year}{year+1}&stype=3&sit=5v5&loc=B&team=All&rate=n'
+               f'thruseason={year}{year+1}&stype=1&sit=5v5&loc=B&team=All&rate=n'
 
     print(f"Accessing {base_url}")
     driver.get(base_url)
@@ -43,16 +49,15 @@ def check_for_new_games(driver, year, last_game_id):
     game_id = None
     found = False
 
-    # Logic adjustment made for the playoffs, refer to NOTE in main.
-    reported_ids = [int(x) for x in last_game_id.split(',')]
+    reported_ids = get_existing_game_ids()
 
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
 
         # For the playoffs, series reports links end in 0 while game report links end in 1
         # We only want the game reports so skip if value % 0 == 0
-        if nst_game_id % 10 == 0:
-            continue
+        #if nst_game_id % 10 == 0:
+        #    continue
 
         if nst_game_id not in set(reported_ids):
             game_id = nst_game_id
@@ -65,6 +70,24 @@ def check_for_new_games(driver, year, last_game_id):
 
     print(f"Found new game with ID {game_id}")
     return game_id
+
+
+def get_existing_game_ids() -> set[int]:
+    """
+    Queries the database to get a set of all the game IDS already included.
+
+    :return set[int]: Set of game report IDs.
+    """
+    ids = {}
+    try:
+        conn = duckdb.connect(databse='md:', read_only=True)
+
+        ids = set(conn.sql("SELECT DISTINCT gameID FROM preseason_skater_games").pl()['gameID'])
+    finally:
+        conn.close()
+
+    if ids:
+        return ids
 
 
 def main(year, last_game_id):
