@@ -2,11 +2,9 @@
 Meant to be called as part of a workflow for scraping game tables. Should be called in the
 step immediately preceding the actual scraper.
 
-Script that will take the game ID of the last game reported on from the GitHub Org variable,
-and check the available finished games on NST to see if there are any more recent games
-available.
-
-If so, pass the first found new game ID to the scraping script.
+Script that will query the games table to check what IDs have been scraped already, compare
+that to the games available on NST, and if a new one was found, set that game ID as an output
+for the next scraping step.
 
 If not, exit gracefully and end the workflow.
 """
@@ -19,7 +17,7 @@ import duckdb
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-def check_for_new_games(driver, year, last_game_id):
+def check_for_new_games(driver, year):
     """
     Given a year, navigates to the 'Games' page of naturalstattrick.com for that season,
     and checks the list of game IDs against the `last_game_id`. If it
@@ -79,30 +77,20 @@ def get_existing_game_ids() -> set[int]:
     :return set[int]: Set of game report IDs.
     """
     ids = {}
-    try:
-        conn = duckdb.connect(databse='md:', read_only=True)
+    conn = duckdb.connect(database='md:', read_only=True)
 
-        ids = set(conn.sql("SELECT DISTINCT gameID FROM preseason_skater_games").pl()['gameID'])
-    finally:
-        conn.close()
+    ids = set(conn.sql("SELECT DISTINCT gameID FROM preseason_skater_games").pl()['gameID'])
+    conn.close()
 
-    if ids:
-        return ids
+    return ids
 
 
-def main(year, last_game_id):
+def main(year):
     """
     Checks that a new game ID exists for that year and sets it as an output for subsequent
     step in workflow.
 
     If no new game ID exists, exit gracefully.
-
-    ************************************************************************
-    NOTE: For the NHL playoffs, NST adds games with game IDs whose values are non-monotonous,
-    so to make sure every game is reported on, the 'LAST_GAME_ID' variable will instead be a 
-    comma-seperated list of every game ID reported on so far, so that this script will look
-    for the first game ID to not be included in this list, create the report, and then update
-    the comma-seperated string stored as an Actions variable.
     """
 
     chrome_options = webdriver.ChromeOptions()
@@ -114,7 +102,7 @@ def main(year, last_game_id):
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game IDs, attempt {4 - retries}...")
             time.sleep(2)
-            game_id = check_for_new_games(driver, year, last_game_id)
+            game_id = check_for_new_games(driver, year)
 
         except Exception as e:
             retries -= 1
@@ -143,8 +131,6 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--year', default=2024, type=int,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
-    parser.add_argument('-g', '--last_game_id', required=True, type=str,
-                        help='The NST Game ID of the last game reported on.')
     args = parser.parse_args()
 
-    main(args.year, args.last_game_id)
+    main(args.year)
