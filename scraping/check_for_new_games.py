@@ -12,6 +12,7 @@ If not, exit gracefully and end the workflow.
 import os
 import time
 import argparse
+from datetime import datetime
 
 import duckdb
 from selenium import webdriver
@@ -47,7 +48,7 @@ def check_for_new_games(driver, year):
     game_id = None
     found = False
 
-    reported_ids = get_existing_game_ids()
+    reported_ids = get_existing_game_ids(year)
 
     for value in href_values:
         nst_game_id = int(value.split('game=')[1].split('&view')[0])
@@ -70,16 +71,17 @@ def check_for_new_games(driver, year):
     return game_id
 
 
-def get_existing_game_ids() -> set[int]:
+def get_existing_game_ids(year: int) -> set[int]:
     """
     Queries the database to get a set of all the game IDS already included.
 
+    :param int year: Season for which to check DB.
     :return set[int]: Set of game report IDs.
     """
     ids = {}
     conn = duckdb.connect(database='md:', read_only=True)
 
-    ids = set(conn.sql("SELECT DISTINCT gameID FROM preseason_skater_games").pl()['gameID'])
+    ids = set(conn.sql(f"SELECT DISTINCT gameID FROM skater_games WHERE season = {year}").pl()['gameID'])
     conn.close()
 
     return ids
@@ -128,7 +130,9 @@ def main(year):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-y', '--year', default=2024, type=int,
+    parser.add_argument('-y', '--year', type=int,
+                        default=datetime.now().year - 1 if datetime.now().month < 10 \
+                                else datetime.now().year,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
     args = parser.parse_args()
