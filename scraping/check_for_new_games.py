@@ -26,7 +26,7 @@ def check_for_new_games(driver, year):
     """
     # Regular season
     base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
-               f'thruseason={year}{year+1}'
+               f'thruseason={year}{year+1}6&stype=2&sit=5v5&loc=B&team=All&rate=n'
 
     # Playoffs
     #base_url = f'https://www.naturalstattrick.com/games.php?fromseason={year}{year+1}&'\
