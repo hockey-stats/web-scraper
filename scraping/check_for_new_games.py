@@ -18,7 +18,7 @@ import duckdb
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-def check_for_new_games(driver, year):
+def check_for_new_games(driver, year, modulo):
     """
     Given a year, navigates to the 'Games' page of naturalstattrick.com for that season,
     and checks the list of game IDs against the `last_game_id`. If it
@@ -58,6 +58,9 @@ def check_for_new_games(driver, year):
         #if nst_game_id % 10 == 0:
         #    continue
 
+        if modulo >= 0 and nst_game_id % 5 != modulo:
+            continue
+
         if nst_game_id not in set(reported_ids):
             game_id = nst_game_id
             found = True
@@ -87,12 +90,14 @@ def get_existing_game_ids(year: int) -> set[int]:
     return ids
 
 
-def main(year):
+def main(year, modulo):
     """
     Checks that a new game ID exists for that year and sets it as an output for subsequent
     step in workflow.
 
     If no new game ID exists, exit gracefully.
+
+    If modulo is provided, this will only scrape gameIDs where gameID % 5 == modulo.
     """
 
     chrome_options = webdriver.ChromeOptions()
@@ -104,7 +109,7 @@ def main(year):
             driver = webdriver.Chrome(options=chrome_options)
             print(f"Getting game IDs, attempt {4 - retries}...")
             time.sleep(2)
-            game_id = check_for_new_games(driver, year)
+            game_id = check_for_new_games(driver, year, modulo)
 
         except Exception as e:
             retries -= 1
@@ -135,6 +140,9 @@ if __name__ == '__main__':
                                 else datetime.now().year,
                         help='Year corresponding to season for which to scrape games. '\
                              'E.g., 2024 corresponds to the 2024/2025 season')
+    parser.add_argument('-m', '--modulo', default=-1, type=int,
+                        help='If set, only return new games where gameID % 5 == args.modulo'\
+                             ' (used for scaling scraping horizontally.)')
     args = parser.parse_args()
 
-    main(args.year)
+    main(args.year, args.modulo)
