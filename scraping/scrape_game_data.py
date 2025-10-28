@@ -40,7 +40,6 @@ def get_game_tables(driver, year, game_id):
 
     # Get the game data and store values for adding to the filename
     game_date = driver.find_element(By.XPATH, '//div[1]/div[5]/div/center/h2').text
-    print(game_date.split('\n'))
     yy, mm, dd = game_date.split('\n')[0].split('-')
 
     # Map the team full names to the acronyms, i.e. Buffalo Sabres -> BUF
