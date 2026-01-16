@@ -28,7 +28,7 @@ def get_game_tables(driver, year, game_id):
 
     print(f"Scraping game with ID {game_id}")
 
-    report_url = f'https://naturalstattrick.com/game.php?season={year}{year+1}&'\
+    report_url = f'https://www.naturalstattrick.com/game.php?season={year}{year+1}&'\
                  f'game={game_id}&view=limited'
     print(f"Accessing {report_url}")
     driver.get(report_url)
