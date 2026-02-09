@@ -84,7 +84,7 @@ def get_existing_game_ids(year: int) -> set[int]:
     ids = {}
     conn = duckdb.connect(database='md:', read_only=True)
 
-    ids = set(conn.sql(f"SELECT DISTINCT gameID FROM skater_games WHERE season = {year}").pl()['gameID'])
+    ids = set(conn.sql(f"SELECT DISTINCT gameID FROM skater_games_2 WHERE season = {year}").pl()['gameID'])
     conn.close()
 
     return ids
